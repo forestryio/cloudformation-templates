@@ -22,7 +22,7 @@ Parameters:
     Type: String
     Default: 'index.html'
   ErrorPagePath:
-    Description: 'The path of the error page for the website (e.g. /error.html). Must be a root-relative path.'
+    Description: 'The path of the error page for the website.'
     Type: String
     Default: '/404.html'
 Resources:
@@ -30,7 +30,12 @@ Resources:
   S3Bucket:
     Type: 'AWS::S3::Bucket'
 
-  # Configure the bucket as a CloudFront Origin
+  # Create a CloudFront Access Identity to broker access to the bucket
+  CloudFrontOriginAccessIdentity:
+    Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Ref S3Bucket
   ReadPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
@@ -42,11 +47,8 @@ Resources:
           Resource: !Sub 'arn:aws:s3:::${S3Bucket}/*'
           Principal:
             CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
-  CloudFrontOriginAccessIdentity:
-    Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
-    Properties:
-      CloudFrontOriginAccessIdentityConfig:
-        Comment: !Ref S3Bucket
+  
+  # Configure the bucket as a CloudFront Origin and grant access via the access identity
   CloudFrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
