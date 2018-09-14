@@ -15,9 +15,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Static website hosting with S3 and CloudFront'
+Description: 'Static website hosting with S3 and CloudFront with a custom domain.'
 Parameters:
 
+  Domain:
+    Description: 'The domain of your website.'
+    Type: String
+  HostedZoneID:
+    Description: 'The ID of your hosted zone in Route 53'
+    Type: 'AWS::Route53::HostedZone::Id'
+  CreateCert:
+    Description: 'Whether to create an HTTPS certificate for this site. You MUST create this stack in the us-east-1 (N. Virginia) region when creating a certificate'
+    Type: String
+    AllowedValues:
+    - 'Yes'
+    - 'No'
+    Default: 'Yes'
   # basic
   # DefaultRootObject:
   #   Description: 'The default path for the index document.'
@@ -30,16 +43,20 @@ Parameters:
 
   # lambda stuff
   IndexDocument:
-    Description: 'The name of the index document for the website.'
+    Description: 'Directory index filename'
     Type: String
     Default: 'index.html'
   LogsRetentionInDays:
-    Description: 'Specifies the number of days you want to retain log events in the specified log group.'
+    Description: 'Specifies the number of days you want to retain log events'
     Type: Number
     Default: 14
     AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653]
 
-  # dns and certman stuff
+Conditions:
+  ShouldCreateCert: !Equals
+  - !Ref CreateCert
+  - 'Yes'
+
 Resources:
   # Create the bucket to contain the website HTML
   S3Bucket:
@@ -68,6 +85,11 @@ Resources:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
       DistributionConfig:
+        Aliases:
+        - !Ref Domain
+        ViewerCertificate:
+          AcmCertificateArn: !Ref Cert
+          SslSupportMethod: 'sni-only'
         CustomErrorResponses:
         - ErrorCode: 403 # not found
           ResponseCode: 404
@@ -90,7 +112,10 @@ Resources:
           MaxTTL: 86400 # in seconds
           MinTTL: 60 # in seconds
           TargetOriginId: s3origin
-          ViewerProtocolPolicy: 'allow-all'
+          ViewerProtocolPolicy: !If
+          - ShouldCreateCert
+          - 'redirect-to-https'
+          - 'allow-all'
           LambdaFunctionAssociations:
           - EventType: 'origin-request'
             LambdaFunctionARN: !Ref LambdaVersionV3
@@ -176,6 +201,28 @@ Resources:
     Type: 'AWS::Lambda::Version'
     Properties:
       FunctionName: !Ref LambdaFunction
+
+
+  # Set up A Record via Route 53
+  Route53Record:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref HostedZoneID
+      Name: !Ref Domain
+      Type: A
+      AliasTarget:
+        HostedZoneId: Z2FDTNDATAQYW2 # This Zone ID is used for any CloudFront Distribution
+        DNSName: !GetAtt 'CloudFrontDistribution.DomainName'
+
+  # Set up TLS Cert
+  Cert:
+    Condition: ShouldCreateCert
+    Type: 'AWS::CertificateManager::Certificate'
+    Properties:
+      DomainName: !Ref Domain
+      ValidationMethod: DNS
+
+  # Set up Certificate via Certificate Manager
 
   # Create an IAM user with Access Keys to enable automated deployment of the website to this bucket
   PublishUser:
