@@ -21,8 +21,6 @@ Parameters:
     Description: 'The path of the error page for the website.'
     Type: String
     Default: '/404.html'
-
-  # lambda stuff
   IndexDocument:
     Description: 'The name of the index document for the website.'
     Type: String
@@ -183,20 +181,13 @@ Resources:
               Resource: 
               - !Sub 'arn:aws:s3:::${S3Bucket}'
               - !Sub 'arn:aws:s3:::${S3Bucket}/*'
-  PublishCredentials:
-    Type: 'AWS::IAM::AccessKey'
-    Properties:
-      UserName: !Ref PublishUser
 Outputs:
   BucketName:
     Description: 'S3 Bucket Name'
     Value: !Ref S3Bucket
-  AccessKeyId:
-    Description: 'S3 Access Key'
-    Value: !Ref PublishCredentials
-  AccessKeySecret:
-    Description: 'S3 Secret Key'
-    Value: !GetAtt PublishCredentials.SecretAccessKey
+  PublishUser:
+    Description: 'IAM User with write access to the bucket'
+    Value: !Ref PublishUser
   DistributionId:
     Description: 'CloudFront Distribution ID'
     Value: !Ref CloudFrontDistribution
