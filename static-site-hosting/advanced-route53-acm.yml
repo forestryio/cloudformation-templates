@@ -256,8 +256,8 @@ Outputs:
   DistributionId:
     Description: 'CloudFront Distribution ID'
     Value: !Ref CloudFrontDistribution
-  Domain:
-    Description: 'Domain'
+  URL:
+    Description: 'URL of your website'
     Value: !If
     - ShouldCreateCert
     - !Sub 'https://${Domain}'
