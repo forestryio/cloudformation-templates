@@ -16,6 +16,21 @@
 # limitations under the License.
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'Static website hosting with S3 and CloudFront with a custom domain.'
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+    - Label: 'DNS'
+      Parameters:
+      - Domain
+      - HostedZoneID
+      - CreateCert
+    - Label: 'Paths'
+      Parameters:
+      - ErrorPagePath
+      - IndexDocument
+    - Label: 'Administrative'
+      Parameters:
+      - LogsRetentionInDays
 Parameters:
 
   Domain:
