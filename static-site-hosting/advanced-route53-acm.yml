@@ -19,20 +19,22 @@ Description: 'Static website hosting with S3 and CloudFront with a custom domain
 Metadata:
   'AWS::CloudFormation::Interface':
     ParameterGroups:
-    - Label: 'DNS'
+    - Label: 
+        default: 'DNS'
       Parameters:
       - Domain
       - HostedZoneID
       - CreateCert
-    - Label: 'Paths'
+    - Label: 
+        default: 'Paths'
       Parameters:
       - ErrorPagePath
       - IndexDocument
-    - Label: 'Administrative'
+    - Label: 
+        default: 'Administrative'
       Parameters:
       - LogsRetentionInDays
 Parameters:
-
   Domain:
     Description: 'The domain of your website.'
     Type: String
