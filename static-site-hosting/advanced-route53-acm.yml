@@ -232,10 +232,27 @@ Resources:
       DomainName: !Ref Domain
       ValidationMethod: DNS
 
+  # Create an IAM user with Access Keys to enable automated deployment of the website to this bucket
+  PublishUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      Policies:
+        - PolicyName: !Sub 'publish-to-${S3Bucket}'
+          PolicyDocument:
+            Statement:
+            - Action: 's3:*'
+              Effect: Allow
+              Resource: 
+              - !Sub 'arn:aws:s3:::${S3Bucket}'
+              - !Sub 'arn:aws:s3:::${S3Bucket}/*'
+
 Outputs:
   BucketName:
     Description: 'S3 Bucket Name'
     Value: !Ref S3Bucket
+  PublishUser:
+    Description: 'IAM User with write access to the bucket'
+    Value: !Ref PublishUser
   DistributionId:
     Description: 'CloudFront Distribution ID'
     Value: !Ref CloudFrontDistribution
