@@ -31,17 +31,10 @@ Parameters:
     - 'Yes'
     - 'No'
     Default: 'Yes'
-  # basic
-  # DefaultRootObject:
-  #   Description: 'The default path for the index document.'
-  #   Type: String
-  #   Default: 'index.html'
   ErrorPagePath:
     Description: 'The path of the error page for the website.'
     Type: String
     Default: '/404.html'
-
-  # lambda stuff
   IndexDocument:
     Description: 'Directory index filename'
     Type: String
@@ -118,7 +111,7 @@ Resources:
           - 'allow-all'
           LambdaFunctionAssociations:
           - EventType: 'origin-request'
-            LambdaFunctionARN: !Ref LambdaVersionV3
+            LambdaFunctionARN: !Ref LambdaVersionV1
         DefaultRootObject: ''
         Enabled: true
         HttpVersion: http2
@@ -150,7 +143,7 @@ Resources:
     Type: 'AWS::Lambda::Function'
     Properties:
       Code:
-        # If you change the ZipFile, rename the logical id LambdaVersionV3 to trigger a new version creation!
+        # If you change the ZipFile, rename the logical id LambdaVersionV1 to trigger a new version creation!
         ZipFile: !Sub |
           'use strict';
           const regex = /\.[a-z0-9]+$/;
@@ -197,7 +190,7 @@ Resources:
     Properties:
       LogGroupName: !Sub '/aws/lambda/${LambdaFunction}'
       RetentionInDays: !Ref LogsRetentionInDays
-  LambdaVersionV3:
+  LambdaVersionV1:
     Type: 'AWS::Lambda::Version'
     Properties:
       FunctionName: !Ref LambdaFunction
@@ -222,38 +215,16 @@ Resources:
       DomainName: !Ref Domain
       ValidationMethod: DNS
 
-  # Set up Certificate via Certificate Manager
-
-  # Create an IAM user with Access Keys to enable automated deployment of the website to this bucket
-  PublishUser:
-    Type: 'AWS::IAM::User'
-    Properties:
-      Policies:
-        - PolicyName: !Sub 'publish-to-${S3Bucket}'
-          PolicyDocument:
-            Statement:
-            - Action: 's3:*'
-              Effect: Allow
-              Resource: 
-              - !Sub 'arn:aws:s3:::${S3Bucket}'
-              - !Sub 'arn:aws:s3:::${S3Bucket}/*'
-  PublishCredentials:
-    Type: 'AWS::IAM::AccessKey'
-    Properties:
-      UserName: !Ref PublishUser
 Outputs:
   BucketName:
     Description: 'S3 Bucket Name'
     Value: !Ref S3Bucket
-  AccessKeyId:
-    Description: 'S3 Access Key'
-    Value: !Ref PublishCredentials
-  AccessKeySecret:
-    Description: 'S3 Secret Key'
-    Value: !GetAtt PublishCredentials.SecretAccessKey
   DistributionId:
     Description: 'CloudFront Distribution ID'
     Value: !Ref CloudFrontDistribution
   Domain:
-    Description: 'Cloudfront Domain'
-    Value: !GetAtt CloudFrontDistribution.DomainName
+    Description: 'Domain'
+    Value: !If
+    - ShouldCreateCert
+    - !Sub 'https://${Domain}'
+    - !Sub 'http://${Domain}'
